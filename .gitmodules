@@ -16,3 +16,6 @@
 [submodule "sharik_back"]
 	path = sharik_back
 	url = https://github.com/kano73/sharik_back
+[submodule "auth_sharik_microservice"]
+	path = auth_sharik_microservice
+	url = https://github.com/kano73/sharik_back
