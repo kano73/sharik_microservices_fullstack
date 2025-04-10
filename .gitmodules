@@ -13,3 +13,6 @@
 [submodule "sharik_front"]
 	path = sharik_front
 	url = https://github.com/kano73/sharik_front
+[submodule "sharik_back"]
+	path = sharik_back
+	url = https://github.com/kano73/sharik_back
