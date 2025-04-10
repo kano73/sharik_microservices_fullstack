@@ -1,0 +1,15 @@
+[submodule "auth_microservice_sharik"]
+	path = auth_microservice_sharik
+	url = https://github.com/kano73/sharik_back
+[submodule "orders_sharik_microservice"]
+	path = orders_sharik_microservice
+	url = https://github.com/kano73/orders_sharik_microservice
+[submodule "product_sharik_microservice"]
+	path = product_sharik_microservice
+	url = https://github.com/kano73/product_sharik_microservice
+[submodule "product_microservice_sharik"]
+	path = product_microservice_sharik
+	url = https://github.com/kano73/product_sharik_microservice
+[submodule "sharik_front"]
+	path = sharik_front
+	url = https://github.com/kano73/sharik_front

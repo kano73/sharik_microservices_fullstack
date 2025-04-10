@@ -1,0 +1,202 @@
+services:
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    healthcheck:
+      test: echo srvr | nc zookeeper 2181 || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - shared_network
+      
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    container_name: kafka
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 100
+    healthcheck:
+      test: ["CMD-SHELL", "/usr/bin/kafka-topics --bootstrap-server kafka:9092 --list > /dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - shared_network
+      
+  mongo_product:
+    image: mongo:latest
+    container_name: mongo_product
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: 12345
+    volumes:
+      - ./mongo-data-product:/data/db
+    networks:
+      - shared_network
+    healthcheck:
+      test: >
+        mongosh --eval "try { db.adminCommand('ping').ok } catch (e) { exit(1) }" --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+      
+  mongo_order:
+    image: mongo:latest
+    container_name: mongo_order
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: 12345
+    volumes:
+      - ./mongo-data-order:/data/db
+    networks:
+      - shared_network
+    healthcheck:
+      test: >
+        mongosh --eval "try { db.adminCommand('ping').ok } catch (e) { exit(1) }" --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+      
+  postgres:
+    image: postgres:latest
+    container_name: postgres
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 12345
+      POSTGRES_DB: sharik
+    volumes:
+      - ./postgres-data:/var/lib/postgresql/data
+    networks:
+      - shared_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 20s 
+
+  redis:
+    image: redis:alpine
+    container_name: redis
+    restart: always
+    networks:
+      - shared_network
+      
+  auth_microservice_sharik:
+    build:
+      context: ./auth_microservice_sharik
+      dockerfile: Dockerfile.springboot
+    container_name: auth_microservice_sharik
+    restart: always
+    environment:
+      POSTGRES_URL: jdbc:postgresql://postgres:5432/sharik
+    ports:
+      - "8000:8000"
+    networks:
+      - shared_network
+      - public_network
+    depends_on:
+      mongo_order:
+        condition: service_healthy
+      mongo_product:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      react-app:
+        condition: service_started
+      kafka:
+        condition: service_healthy
+      zookeeper:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+
+  orders_sharik_microservice:
+    build:
+      context: ./orders_sharik_microservice
+      dockerfile: Dockerfile.springboot
+    container_name: orders_sharik_microservice
+    restart: always
+    environment:
+      MONGO_URI: mongodb://admin:12345@mongo_order:27017/admin?authSource=admin
+    networks:
+      - shared_network
+    depends_on:
+      mongo_order:
+        condition: service_healthy
+      mongo_product:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      react-app:
+        condition: service_started
+      kafka:
+        condition: service_healthy
+      zookeeper:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+
+  product_microservice_sharik:
+    build:
+      context: ./product_microservice_sharik
+      dockerfile: Dockerfile.springboot
+    container_name: product_microservice_sharik
+    restart: always
+    environment:
+      MONGO_URI: mongodb://admin:12345@mongo_product:27017/admin?authSource=admin
+    networks:
+      - shared_network
+    depends_on:
+      mongo_order:
+        condition: service_healthy
+      mongo_product:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      react-app:
+        condition: service_started
+      kafka:
+        condition: service_healthy
+      zookeeper:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+      
+  react-app:
+    build:
+      context: ./sharik_front
+      dockerfile: Dockerfile.react
+    container_name: react-app
+    restart: always
+    ports:
+      - "3001:3001"
+    networks:
+      - shared_network
+      - public_network
+
+networks:
+  shared_network:
+    driver: bridge
+
+  public_network:
+    driver: bridge
