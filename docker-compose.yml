@@ -101,11 +101,11 @@ services:
     networks:
       - shared_network
       
-  auth_microservice_sharik:
+  auth_sharik_microservice:
     build:
-      context: ./auth_microservice_sharik
+      context: ./auth_sharik_microservice
       dockerfile: Dockerfile.springboot
-    container_name: auth_microservice_sharik
+    container_name: auth_sharik_microservice
     restart: always
     environment:
       POSTGRES_URL: jdbc:postgresql://postgres:5432/sharik
