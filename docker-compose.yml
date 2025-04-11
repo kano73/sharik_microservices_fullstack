@@ -156,11 +156,11 @@ services:
       postgres:
         condition: service_healthy
 
-  product_microservice_sharik:
+  product_sharik_microservice:
     build:
-      context: ./product_microservice_sharik
+      context: ./product_sharik_microservice
       dockerfile: Dockerfile.springboot
-    container_name: product_microservice_sharik
+    container_name: product_sharik_microservice
     restart: always
     environment:
       MONGO_URI: mongodb://admin:12345@mongo_product:27017/admin?authSource=admin
